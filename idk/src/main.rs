@@ -1,76 +1,98 @@
-use std::{ env, fs };
-#[derive(Debug)]
-struct TOKENS {
-    Literal: usize,
-    print: usize,
-    SEMI: usize,
-    LEFT_PRAM: usize,
-    RIGHT_PRAM: usize,
-}
-impl TOKENS {
-    // Function to check if 'check' is in the struct.
-    fn contains(&self, check: &str) -> bool {
-        check == "Literal" || check == "print" || check == ";" || check == "(" || check == ")"
-    }
-    fn is_string(&self, check: &str) -> bool {
-        check == '"'.to_string()
-    }
-}
+use std::fs::{ self, File };
+use std::io::Write;
+use std::path::Path;
+use clap::{ Arg, ColorChoice };
+const LOGO: &str =
+    r#"
+______     __                                       __
+/      \   |  \                                     |  \
+|  $$$$$$\ _| $$_     ______   ______   __   __   __ | $$____    ______    ______    ______   __    __
+| $$___\$$|   $$ \   /      \ |      \ |  \ |  \ |  \| $$    \  /      \  /      \  /      \ |  \  |  \
+\$$    \  \$$$$$$  |  $$$$$$\ \$$$$$$\| $$ | $$ | $$| $$$$$$$\|  $$$$$$\|  $$$$$$\|  $$$$$$\| $$  | $$
+_\$$$$$$\  | $$ __ | $$   \$$/      $$| $$ | $$ | $$| $$  | $$| $$    $$| $$   \$$| $$   \$$| $$  | $$
+|  \__| $$  | $$|  \| $$     |  $$$$$$$| $$_/ $$_/ $$| $$__/ $$| $$$$$$$$| $$      | $$      | $$__/ $$
+\$$    $$   \$$  $$| $$      \$$    $$ \$$   $$   $$| $$    $$ \$$     \| $$      | $$       \$$    $$
+ \$$$$$$     \$$$$  \$$       \$$$$$$$  \$$$$$\$$$$  \$$$$$$$   \$$$$$$$ \$$       \$$       _\$$$$$$$
+                                                                                            |  \__| $$
+                                                                                             \$$    $$
+                                                                                              \$$$$$$
+"#;
 fn main() {
-    // Create a vector of empty strings with a capacity of 126.
-    let mut array: Vec<String> = vec![String::new(); 126];
-    // Collect command-line arguments into a Vec<String>.
-    let args: Vec<String> = env::args().collect();
-    // Check if a command-line argument was provided.
-    if args.len() < 2 {
-        eprintln!("Usage: {} <filename>", args[0]);
-        std::process::exit(1);
+    handle_args();
+}
+fn handle_args() {
+    println!("\n{}", LOGO);
+    let mut cmd = clap::Command
+        ::new("IDK")
+        .color(ColorChoice::Auto)
+        .version("0.1-beta")
+        .about("A toy object-oriented programming language")
+        .subcommand(clap::Command::new("build").about("Build the current project directory"))
+        .subcommand(
+            clap::Command
+                ::new("new")
+                .about("Create a new empty project folder")
+                .arg(Arg::new("name").required(true).help("The name of the new project"))
+        );
+    let matches = cmd.clone().get_matches();
+    if let Some(matches) = matches.subcommand_matches("new") {
+        let msg = format!(
+            "🎉 Congratulations, you successfully created the project, please use cd ./{}, and then use idk build to build the project!",
+            matches.get_one::<String>("name").unwrap()
+        );
+        // println!("STuff sefgywef fiewbf ,{}", msg);
+        create_project_folder(matches.get_one::<String>("name").unwrap());
     }
-    // Get the filename from the command-line arguments.
-    let file_name: &String = &args[1];
-    // Read the contents of the file into a String.
-    let contents = fs::read_to_string(file_name).expect("Unable to read the file");
-    // Convert the contents to a Vec<char>.
-    let my_vec: Vec<char> = contents.chars().collect();
-    // Define TOKENS struct (unused for now).
-    let tokens = TOKENS {
-        Literal: 1,
-        print: 1,
-        SEMI: 1,
-        LEFT_PRAM: 1,
-        RIGHT_PRAM: 1,
-    };
-    // Iterate over the first 14 characters in my_vec.
-    let mut check = String::new(); // Use String::new() to create an empty string.
-    let flag = false;
-    let mut printWhat = String::new(); // Use String::new() to create an empty string.
-    for index in 0..120 {
-        check.push(my_vec[index]); // Use push method to append a character.
-        if tokens.contains(&check) {
-            // println!("'{}' is present in the TOKENS struct.", check);
-            check.clear();
-        }
-        if check.starts_with('"') && !check.ends_with('"') {
-            // println!("'{}' is present in the TOKENS struct.", printWhat);
-            if check.ends_with(')') {
-                // flag
-                check.clear();
-            }
-            printWhat.push(my_vec[index]); // Use push method to append a character.
-        }
-        println!("Value {}", printWhat);
-        // else {
-        // println!("'{}' is not present in the TOKENS struct.", check);
-        // }
-        // if check == "print" {
-        //     println!("FOUND it {}", check);
-        // //     // check = "".to_string();
-        // //     println!("FOUND it {}", check);
-        //     }
-        // }
-        if my_vec[index] == ' ' || my_vec[index] == ';' {
-            println!("BREAKING");
-            break;
-        }
+    //  else if let Some(_) = matches.subcommand_matches("build") {
+    //     let mut curr_path = "./src".to_string();
+    //     let mut path_flag = true;
+    //     let home_dir = home_dir().unwrap().into_os_string().into_string().unwrap();
+    //     let mut files: Vec<String> = vec![
+    //         format!("{}/.strawberry/std/Object.st", home_dir),
+    //         format!("{}/.strawberry/std/Integer.st", home_dir),
+    //         format!("{}/.strawberry/std/String.st", home_dir),
+    //         format!("{}/.strawberry/std/Bool.st", home_dir),
+    //         format!("{}/.strawberry/std/Void.st", home_dir)
+    //     ];
+    //     while path_flag {
+    //         path_flag = false;
+    //         if let Ok(paths) = fs::read_dir(&curr_path) {
+    //             // paths.
+    //             for path in paths {
+    //                 if let Ok(d) = &path {
+    //                     let path_name = d.path().to_str().unwrap().to_string();
+    //                     if metadata(&path_name).unwrap().is_dir() {
+    //                         path_flag = true;
+    //                         curr_path = path_name.to_string();
+    //                     } else {
+    //                         files.insert(0, path_name);
+    //                     }
+    //                 }
+    //             }
+    //         } else {
+    //             let err = format!(
+    //                 "❌ Failed to build because the current directory is not a strawberry project, try strawberry new example"
+    //             );
+    //             println!("{}", err.red());
+    //         }
+    //     }
+    //     compile(files);
+    // }
+    else {
+        let _ = cmd.print_long_help();
     }
+}
+fn create_project_folder(name: &str) {
+    let path = Path::new(name);
+    if path.exists() {
+        println!("Error: {} already exists", name);
+        return;
+    }
+    fs::create_dir(path).expect("Failed to create project folder");
+    fs::create_dir(path.join("src")).expect("Failed to create project src folder");
+    fs::create_dir(path.join("build")).expect("Failed to create project build folder");
+    let mut file = File::create(path.join("src/main.idk")).expect("Failed to create main.st");
+    file.write(
+        b"\tFn main() -> Int { \n\t\tprint(\"Hello world!\"); \n\t\treturn 0; \n\t};"
+    ).unwrap();
 }
